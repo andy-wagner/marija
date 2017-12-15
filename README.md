@@ -172,6 +172,135 @@ $ cd marija
     - `Marija` project is fully conformant with Golang style
     - if you happen to observe offending code, please feel free to send a pull request
 
+## Socket API
+All communication between the server and the client is done via web sockets.
+All messages are encoded with JSON.
+
+### Messages from server to client
+
+#### INITIAL_STATE_RECEIVE
+Sent immediately when client makes a connection to the server.
+
+**Example:**
+```
+{
+  "type": "INITIAL_STATE_RECEIVE",
+  "state": {
+    "datasources": [
+      {
+        "id": "blockchain",
+        "name": "blockchain"
+      },
+      {
+        "id": "twitter",
+        "name": "twitter"
+      }
+    ]
+  }
+}
+```
+
+#### FIELDS_RECEIVE
+Sent after a FIELDS_REQUEST message is sent to the server.
+
+Contains all the available fields for the selected datasources.
+
+**Example:**
+```
+{
+  "type": "FIELDS_RECEIVE",
+  "fields": {
+    "server": "twitter",
+    "index": "",
+    "fields": [
+      {
+        "path": "text",
+        "type": "string"
+      },
+      {
+        "path": "in_reply_to_screen_name",
+        "type": "string"
+      }
+    ]
+  }
+}
+```
+
+#### ITEMS_RECEIVE
+Sent after an ITEMS_REQUEST message is sent to the server.
+
+Contains the search results.
+
+**Example:**
+```
+{
+  "type": "ITEMS_RECEIVE",
+  "items": {
+    "server": "twitter",
+    "query": "wilders",
+    "color": "#de79f2",
+    "total": 100,
+    "results": [
+      {
+        "id": "94165573590947020",
+        "fields": {
+          "in_reply_to_screen_name": "",
+          "in_reply_to_status_id_str": "",
+          "in_reply_to_user_id_str": "",
+          "lang": "tr",
+          "mentions": [
+            "examplemention"
+          ],
+          "source": "\u003ca href=\"http://twitter.com\" rel=\"nofollow\"\u003eTwitter Web Client\u003c/a\u003e",
+          "tags": null,
+          "text": "tweet contents",
+          "user": {
+            "id_str": "89846608896665190",
+            "lang": "tr",
+            "location": "",
+            "name": "example name",
+            "screen_name": "example screen name"
+          }
+        },
+        "highlight": null
+      }
+    ]
+  }
+}
+```
+
+### Messages from client to server
+
+#### FIELDS_REQUEST
+Request which fields are available for the selected datasources.
+
+**Example:**
+```
+{
+  "type": "FIELDS_REQUEST",
+  "datasources": [
+    "twitter"
+  ]
+}
+```
+
+#### ITEMS_REQUEST
+Perform a search query.
+
+**Example:**
+```
+{
+  "type": "ITEMS_REQUEST",
+  "datasources": [
+    "twitter"
+  ],
+  "query": "wilders",
+  "from": 0,
+  "size": 500,
+  "color": "#de79f2"
+}
+```
+
 ## Creators
 
 **Remco Verhoef**
