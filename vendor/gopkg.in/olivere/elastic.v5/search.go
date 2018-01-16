@@ -22,6 +22,7 @@ type SearchService struct {
 	searchSource      *SearchSource
 	source            interface{}
 	pretty            bool
+	filterPath        []string
 	searchType        string
 	index             []string
 	typ               []string
@@ -58,20 +59,22 @@ func (s *SearchService) Source(source interface{}) *SearchService {
 	return s
 }
 
+// FilterPath allows reducing the response, a mechanism known as
+// response filtering and described here:
+// https://www.elastic.co/guide/en/elasticsearch/reference/current/common-options.html#common-options-response-filtering.
+func (s *SearchService) FilterPath(filterPath ...string) *SearchService {
+	s.filterPath = append(s.filterPath, filterPath...)
+	return s
+}
+
 // Index sets the names of the indices to use for search.
 func (s *SearchService) Index(index ...string) *SearchService {
-	if s.index == nil {
-		s.index = make([]string, 0)
-	}
 	s.index = append(s.index, index...)
 	return s
 }
 
 // Types adds search restrictions for a list of types.
 func (s *SearchService) Type(typ ...string) *SearchService {
-	if s.typ == nil {
-		s.typ = make([]string, 0)
-	}
 	s.typ = append(s.typ, typ...)
 	return s
 }
@@ -325,6 +328,9 @@ func (s *SearchService) buildURL() (string, url.Values, error) {
 	if s.ignoreUnavailable != nil {
 		params.Set("ignore_unavailable", fmt.Sprintf("%v", *s.ignoreUnavailable))
 	}
+	if len(s.filterPath) > 0 {
+		params.Set("filter_path", strings.Join(s.filterPath, ","))
+	}
 	return path, params, nil
 }
 
@@ -470,12 +476,12 @@ type SearchSuggestion struct {
 // SearchSuggestionOption is an option of a SearchSuggestion.
 // See http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/search-suggesters.html.
 type SearchSuggestionOption struct {
-	Text         string      `json:"text"`
-	Highlighted  string      `json:"highlighted"`
-	Score        float64     `json:"score"`
-	CollateMatch bool        `json:"collate_match"`
-	Freq         int         `json:"freq"` // deprecated in 2.x
-	Payload      interface{} `json:"payload"`
+	Text   string           `json:"text"`
+	Index  string           `json:"_index"`
+	Type   string           `json:"_type"`
+	Id     string           `json:"_id"`
+	Score  float64          `json:"_score"`
+	Source *json.RawMessage `json:"_source"`
 }
 
 // Aggregations (see search_aggs.go)

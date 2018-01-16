@@ -5,17 +5,21 @@ import (
 	_ "log"
 	"net/http"
 	"os"
+	"os/signal"
 
 	"github.com/dutchcoders/marija/server/datasources"
 
-	"github.com/dutchcoders/marija/server/datasources/blockchain"
 	"github.com/dutchcoders/marija/server/datasources/es5"
-	"github.com/dutchcoders/marija/server/datasources/twitter"
+	//	"github.com/dutchcoders/marija/server/datasources/solr"
+	//	"github.com/dutchcoders/marija/server/datasources/twitter"
+
+	// btc "github.com/dutchcoders/marija/server/datasources/blockchain"
+	assetfs "github.com/elazarl/go-bindata-assetfs"
+
+	logging "github.com/op/go-logging"
 
 	web "github.com/dutchcoders/marija-web"
-	"github.com/elazarl/go-bindata-assetfs"
 	"github.com/fatih/color"
-	"github.com/op/go-logging"
 )
 
 var log = logging.MustGetLogger("marija/server")
@@ -61,8 +65,15 @@ func (d *Datasources) UnmarshalTOML(p interface{}) error {
 					return err
 				}
 				m[n] = nd
-			} else if v == "twitter" {
+			} else {
+			} /*else if v == "twitter" {
 				nd := &twitter.Twitter{}
+				if err := nd.UnmarshalTOML(d); err != nil {
+					return err
+				}
+				m[n] = nd
+			} else if v == "solr" {
+				nd := &solr.Solr{}
 				if err := nd.UnmarshalTOML(d); err != nil {
 					return err
 				}
@@ -74,7 +85,7 @@ func (d *Datasources) UnmarshalTOML(p interface{}) error {
 				}
 				m[n] = nd
 			} else {
-			}
+			} */
 		} else {
 			return fmt.Errorf("not a dish")
 		}
@@ -114,15 +125,39 @@ func (server *Server) Run() {
 
 	http.HandleFunc("/ws", server.serveWs)
 
-	fmt.Println(color.YellowString(fmt.Sprintf("Marija server started, listening on address %s.", server.address)))
+	fmt.Println(color.YellowString(`
+ __  __            _  _
+|  \/  | __ _ _ __(_)(_) __ _
+| |\/| |/ _' | '__| || |/ _' |
+| |  | | (_| | |  | || | (_| |
+|_|  |_|\__,_|_|  |_|/ |\__,_|
+                   |__/
+`))
+
+	fmt.Println(color.YellowString("Marija server started %s (%s)", Version, ShortCommitID))
+	fmt.Println(color.YellowString("Listening on address %s.", server.address))
 
 	defer func() {
-		fmt.Println(color.YellowString(fmt.Sprintf("Marija server stopped.")))
+		fmt.Println(color.YellowString("Marija server stopped"))
 	}()
 
-	if err := http.ListenAndServe(server.address, nil); err != nil {
-		log.Fatal("ListenAndServe: ", err)
+	signals := make(chan os.Signal, 1)
+	signal.Notify(signals, os.Interrupt)
+
+	go func() {
+		if err := http.ListenAndServe(server.address, nil); err != nil {
+			log.Fatal("ListenAndServe: ", err)
+		}
+	}()
+
+	for {
+		select {
+		case <-signals:
+			fmt.Println(color.YellowString("Marija server stopping..."))
+			return
+		}
 	}
+
 }
 
 func New(options ...func(*Server)) *Server {

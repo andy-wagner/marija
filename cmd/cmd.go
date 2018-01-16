@@ -47,10 +47,6 @@ var globalFlags = []cli.Flag{
 		Usage: "config file",
 		Value: "config.toml",
 	},
-	cli.BoolFlag{
-		Name:  "help, h",
-		Usage: "Show help.",
-	},
 }
 
 type Cmd struct {
@@ -62,6 +58,8 @@ func VersionAction(c *cli.Context) {
 }
 
 func New() *Cmd {
+	cli.VersionPrinter = VersionPrinter
+
 	app := cli.NewApp()
 	app.Name = "Marija"
 	app.Author = ""
@@ -81,10 +79,23 @@ func New() *Cmd {
 	}
 
 	app.Action = func(c *cli.Context) {
+		options := []func(*server.Server){}
+
+		if v := c.String("port"); v != "" {
+			options = append(options, server.Address(v))
+
+		}
+
+		if v := c.String("path"); v != "" {
+			options = append(options, server.Path(v))
+		}
+
+		if v := c.String("config"); v != "" {
+			options = append(options, server.Config(v))
+		}
+
 		srvr := server.New(
-			server.Address(c.String("port")),
-			server.Path(c.String("path")),
-			server.Config(c.String("config")),
+			options...,
 		)
 
 		srvr.Run()
